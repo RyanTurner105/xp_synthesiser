@@ -33,43 +33,14 @@ import java.sql.Time;
 import java.time.LocalTime;
 import java.util.List;
 
-public class KillRecorderItem extends Item implements MutableDataComponentHolder {
+public class KillRecorderItem extends Item {
 
-    public static boolean recording;
     private final PatchedDataComponentMap components;
 
     // Overloads can be provided to supply the map itself
     public KillRecorderItem(boolean recording) {
         super(new Properties().stacksTo(1));
-        KillRecorderItem.recording = recording;
         this.components = new PatchedDataComponentMap(DataComponentMap.EMPTY);
-    }
-
-    @Override
-    public DataComponentMap getComponents() {
-        return this.components;
-    }
-
-    @Nullable
-    @Override
-    public <T> T set(DataComponentType<? super T> componentType, @Nullable T value) {
-        return this.components.set(componentType, value);
-    }
-
-    @Nullable
-    @Override
-    public <T> T remove(DataComponentType<? extends T> componentType) {
-        return this.components.remove(componentType);
-    }
-
-    @Override
-    public void applyComponents(DataComponentPatch patch) {
-        this.components.applyPatch(patch);
-    }
-
-    @Override
-    public void applyComponents(DataComponentMap components) {
-        this.components.setAll(components);
     }
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -83,7 +54,7 @@ public class KillRecorderItem extends Item implements MutableDataComponentHolder
         if (!pLevel.isClientSide()) {
             toggleRecording(pLevel, (ServerPlayer) pPlayer, itemStack);
             // ItemStack newItemStack = pPlayer.getItemInHand(pUsedHand);
-
+            pPlayer.setItemInHand(pUsedHand, itemStack);
         }
         return InteractionResultHolder.sidedSuccess(itemStack, pLevel.isClientSide());
     }
@@ -136,7 +107,7 @@ public class KillRecorderItem extends Item implements MutableDataComponentHolder
                 component.add(Component.translatable("RECORDING").withStyle(ChatFormatting.RED));
             }
 
-            component.add(Component.translatable((recording ? "Current " : "Stored ") + "XP: " + krData.getXP()).withStyle(ChatFormatting.BLUE));
+            component.add(Component.translatable((krData.getRecording() ? "Current " : "Stored ") + "XP: " + krData.getXP()).withStyle(ChatFormatting.BLUE));
 
             // Get current time somehow?
             if (krData.getRecordingEnd() > 0) {

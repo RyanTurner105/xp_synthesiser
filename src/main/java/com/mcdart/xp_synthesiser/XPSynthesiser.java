@@ -305,19 +305,19 @@ public class XPSynthesiser
                 LOGGER.info("XP Gained: {}", xpGained);
 
                 // Find any active Kill Recorders in the player's inventory, if there is one
-                ((ServerPlayer) event.getSource().getEntity()).inventoryMenu.slots.forEach((slot) ->
+                ((ServerPlayer) event.getSource().getEntity()).getInventory().items.forEach((slot) ->
                 {
                     // Found a kill recorder
-                    if (slot.getItem().getItem() instanceof KillRecorderItem) {
+                    if (slot.getItem() instanceof KillRecorderItem) {
 
-                        KillRecorderData oldData = KillRecorderItem.getRecordingData(slot.getItem());
+                        KillRecorderData oldData = KillRecorderItem.getRecordingData(slot);
 
                         // If it has data and it's recording
                         if (oldData != null && oldData.getRecording()) {
                             LOGGER.info("Old kill recorder data: {}, {}, {}, {}", oldData.getRecording(), oldData.getXP(), oldData.getRecordingStart(), oldData.getRecordingEnd());
                             // Add the new XP from the kill
                             oldData.setXP(oldData.getXP() + xpGained);
-                            KillRecorderItem.setRecordingData(slot.getItem(), oldData);
+                            KillRecorderItem.setRecordingData(slot, oldData);
                             LOGGER.info("New kill recorder data: {}, {}, {}, {}", oldData.getRecording(), oldData.getXP(), oldData.getRecordingStart(), oldData.getRecordingEnd());
 //                            var newData = ((KillRecorderItem) slot.getItem().getItem()).getRecordingData(slot.getItem());
 //                            LOGGER.info("New kill recorder data?: {}, {}", newData.getRecording(), newData.getXP());
