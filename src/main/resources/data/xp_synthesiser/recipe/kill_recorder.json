@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "IRI",
+    "IXI",
+    "IRI"
+  ],
+  "key": {
+    "X": {
+      "item": "minecraft:experience_bottle"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "id": "xp_synthesiser:kill_recorder",
+    "count": 1
+  }
+}

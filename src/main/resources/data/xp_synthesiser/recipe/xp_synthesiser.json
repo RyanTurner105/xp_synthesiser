@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ECE",
+    "CXC",
+    "ECE"
+  ],
+  "key": {
+    "X": {
+      "item": "minecraft:experience_bottle"
+    },
+    "E": {
+      "item": "minecraft:emerald_block"
+    },
+    "C": {
+      "item": "minecraft:copper_block"
+    }
+  },
+  "result": {
+    "id": "xp_synthesiser:xp_synthesiser",
+    "count": 1
+  }
+}
