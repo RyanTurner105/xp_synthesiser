@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 
 import java.util.Arrays;
 
-import static com.mcdart.xp_synthesiser.items.KillRecorderItem.getRecordingData;
 import static java.lang.Math.ceil;
 import static java.lang.Math.floor;
 
@@ -137,11 +136,11 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
         }
 
         // Progress "Bar"
-        KillRecorderData killRecorderData = getRecordingData(synthesiser.itemHandler.getStackInSlot(0));
+        KillRecorderData killRecorderData = synthesiser.itemHandler.getStackInSlot(0).getOrDefault(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(), KillRecorderData.createEmpty());
         //LOGGER.info("Progress {}, Target: {}, Percentage Complete: {}", progress, killRecorderData.getRecordingEnd() - killRecorderData.getRecordingStart(), completionPercentage);
-        if (synthesiser.progress > 0 && killRecorderData != null) {
+        if (synthesiser.progress > 0 && killRecorderData.recordingEnd() > 0) {
             int progress = synthesiser.trackedProgress.get(0);
-            double completionPercentage = ((double) progress) / (killRecorderData.getRecordingEnd() - killRecorderData.getRecordingStart());
+            double completionPercentage = ((double) progress) / (killRecorderData.recordingEnd() - killRecorderData.recordingStart());
             graphics.blit(background,
                     leftPos + PROGRESS_BAR_X_OFFSET,
                     topPos + PROGRESS_BAR_Y_OFFSET + (int) floor(PROGRESS_BAR_HEIGHT - PROGRESS_BAR_HEIGHT * completionPercentage),
@@ -182,17 +181,17 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
         if (!synthesiser.itemHandler.getStackInSlot(0).equals(ItemStack.EMPTY) &&
                 synthesiser.itemHandler.getStackInSlot(0).getItem() instanceof KillRecorderItem) {
 
-            KillRecorderData killRecorderData = getRecordingData(synthesiser.itemHandler.getStackInSlot(0));
+            KillRecorderData killRecorderData = synthesiser.itemHandler.getStackInSlot(0).getOrDefault(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(), KillRecorderData.createEmpty());
 
             // No recording
-            if (killRecorderData == null || killRecorderData.getRecordingEnd() == 0) {
+            if (killRecorderData.recordingEnd() == 0) {
                 MutableComponent noValidRecording = Component.literal("NO VALID RECORDING");
                 graphics.drawString(font, noValidRecording,
                         (this.imageWidth - font.width(noValidRecording)) / 2 + 1,
                         PROGRESS_LABEL_YPOS, 0xff0000, false);
 
                 // Not enough power
-            } else if (HelperFunctions.getTickCost(killRecorderData.getXP(), (int) (killRecorderData.getRecordingEnd() - killRecorderData.getRecordingStart()))
+            } else if (HelperFunctions.getTickCost(killRecorderData.xp(), (int) (killRecorderData.recordingEnd() - killRecorderData.recordingStart()))
                     > synthesiser.trackedEnergy.get(1) * 2) {
                 MutableComponent notEnoughPower = Component.literal("NOT ENOUGH POWER");
                 graphics.drawString(font, notEnoughPower,
@@ -204,7 +203,7 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
                 MutableComponent progressAmount = Component.literal(String.valueOf(
                         Math.min(
                                 (int) ceil((((double) synthesiser.trackedProgress.get(0)) /
-                                        (killRecorderData.getRecordingEnd() - killRecorderData.getRecordingStart())) * 100 + 2)
+                                        (killRecorderData.recordingEnd() - killRecorderData.recordingStart())) * 100 + 2)
                                 , 100)
                 ) + "%");
                 graphics.drawString(font, progressAmount,

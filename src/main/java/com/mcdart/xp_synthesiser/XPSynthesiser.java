@@ -310,15 +310,20 @@ public class XPSynthesiser
                     // Found a kill recorder
                     if (slot.getItem() instanceof KillRecorderItem) {
 
-                        KillRecorderData oldData = KillRecorderItem.getRecordingData(slot);
+                        KillRecorderData oldData = slot.get(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get());
 
                         // If it has data and it's recording
-                        if (oldData != null && oldData.getRecording()) {
-                            LOGGER.info("Old kill recorder data: {}, {}, {}, {}", oldData.getRecording(), oldData.getXP(), oldData.getRecordingStart(), oldData.getRecordingEnd());
+                        if (oldData != null && oldData.recording()) {
+                            LOGGER.info("Old kill recorder data: {}, {}, {}, {}", oldData.recordingEnd(), oldData.xp(), oldData.recordingStart(), oldData.recordingEnd());
                             // Add the new XP from the kill
-                            oldData.setXP(oldData.getXP() + xpGained);
-                            KillRecorderItem.setRecordingData(slot, oldData);
-                            LOGGER.info("New kill recorder data: {}, {}, {}, {}", oldData.getRecording(), oldData.getXP(), oldData.getRecordingStart(), oldData.getRecordingEnd());
+//                            oldData.setXP(oldData.getXP() + xpGained);
+//                            KillRecorderItem.setRecordingData(slot, oldData);
+                            slot.update(
+                                    XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(),
+                                    oldData,
+                                    data -> data.addKill(xpGained)
+                            );
+                            LOGGER.info("New kill recorder data: {}, {}, {}, {}", oldData.recording(), oldData.xp(), oldData.recordingStart(), oldData.recordingEnd());
 //                            var newData = ((KillRecorderItem) slot.getItem().getItem()).getRecordingData(slot.getItem());
 //                            LOGGER.info("New kill recorder data?: {}, {}", newData.getRecording(), newData.getXP());
                         }

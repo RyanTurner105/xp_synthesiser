@@ -1,5 +1,6 @@
 package com.mcdart.xp_synthesiser.util;
 
+import com.mcdart.xp_synthesiser.Config;
 import net.minecraft.server.commands.ExperienceCommand;
 import net.minecraft.world.entity.ExperienceOrb;
 
@@ -19,8 +20,10 @@ public class HelperFunctions {
     // - totalXP: 100, totalTicks: 1000 (20 monster kills in 50 seconds) - CPT: 1,010, TC: 1,010,000
     // - totalXP: 1000, totalTicks: 100 (some exploit) - CPT: 1,100,000, TC: 110,000,000
     public static double getTickCost(int totalXp, int totalTicks) {
-        double baseCost = (double)totalXp * 10000 / (double)totalTicks;
-        double scalingCost = (double)(totalXp^3) * 10000 / ((double)(totalTicks^2) * 1000);
+        int defaultCost = Config.GENERAL.xpPointCost.getAsInt(); // Default is 10000
+
+        double baseCost = (double)totalXp * defaultCost / (double)totalTicks;
+        double scalingCost = (double)(totalXp^3) * defaultCost / ((double)(totalTicks^2) * ((double) defaultCost / 10));
 
         return baseCost + scalingCost;
     }

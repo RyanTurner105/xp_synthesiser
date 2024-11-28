@@ -1,5 +1,7 @@
 package com.mcdart.xp_synthesiser.blocks;
 
+import com.mcdart.xp_synthesiser.Config;
+import com.mcdart.xp_synthesiser.XPSynthesiser;
 import com.mcdart.xp_synthesiser.items.KillRecorderData;
 import com.mcdart.xp_synthesiser.items.KillRecorderItem;
 import com.mcdart.xp_synthesiser.util.HelperFunctions;
@@ -26,7 +28,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import static com.mcdart.xp_synthesiser.XPSynthesiser.*;
-import static com.mcdart.xp_synthesiser.items.KillRecorderItem.getRecordingData;
 
 public class XPSynthesiserBlockEntity extends BlockEntity {
 
@@ -163,13 +164,14 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
 
     public void progressCurrentItem() {
 
-        KillRecorderData killRecorderData = getRecordingData(this.itemHandler.getStackInSlot(0));
-        if (killRecorderData != null) {
+        KillRecorderData killRecorderData = this.itemHandler.getStackInSlot(0).getOrDefault(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(), KillRecorderData.createEmpty());
+        if (killRecorderData.recordingEnd() > 0) {
             //LOGGER.info("Progressing item {} {}, target: {}", killRecorderData, progress, killRecorderData.getRecordingEnd() - killRecorderData.getRecordingStart());
 
             // Check if the cost can be paid
-            int duration = (int)(killRecorderData.getRecordingEnd() - killRecorderData.getRecordingStart());
-            int cost = (int) HelperFunctions.getTickCost(killRecorderData.getXP(), duration);
+            int duration = (int)(killRecorderData.recordingEnd() - killRecorderData.recordingStart());
+            int cost = Config.GENERAL.requiresPower.isTrue() ?
+                    (int) HelperFunctions.getTickCost(killRecorderData.xp(), duration) : 0;
 
             if (cost <= this.trackedEnergy.get(1)) {
                 // Pay cost
@@ -194,8 +196,8 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
     }
 
     public void generateXP(KillRecorderData data) {
-        LOGGER.info("Generating {} XP", data.getXP());
-        trackedProgress.set(1, trackedProgress.get(1) + data.getXP());
+        LOGGER.info("Generating {} XP", data.xp());
+        trackedProgress.set(1, trackedProgress.get(1) + data.xp());
         LOGGER.info("Total now {} XP", trackedProgress.get(1));
 
         // Generate XP in world

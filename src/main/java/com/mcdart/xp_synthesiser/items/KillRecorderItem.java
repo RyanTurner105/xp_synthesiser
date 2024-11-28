@@ -6,10 +6,12 @@ import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.font.providers.UnihexProvider;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.data.worldgen.DimensionTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -20,6 +22,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -35,12 +38,10 @@ import java.util.List;
 
 public class KillRecorderItem extends Item {
 
-    private final PatchedDataComponentMap components;
 
     // Overloads can be provided to supply the map itself
     public KillRecorderItem(boolean recording) {
         super(new Properties().stacksTo(1));
-        this.components = new PatchedDataComponentMap(DataComponentMap.EMPTY);
     }
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -61,61 +62,48 @@ public class KillRecorderItem extends Item {
 
     private void toggleRecording(Level pLevel, ServerPlayer player, ItemStack itemStack) {
         LOGGER.info("Level: {}", pLevel);
+        KillRecorderData currentData = itemStack.getOrDefault(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(), KillRecorderData.createEmpty());
 
-        var currentData = getRecordingData(itemStack);
-
-        if (currentData != null) {
-            LOGGER.info("Is recording data? {}", getRecordingData(itemStack).getRecording());
-            currentData.setRecording(!currentData.getRecording());
-            // Reset XP and start time if we just started recording
-            if (currentData.getRecording()) {
-                currentData.setXP(0);
-                currentData.setRecordingStart(pLevel.getGameTime());
-                currentData.setRecordingEnd(0);
-            } else {
-                // Set time taken if we just finished recording
-                currentData.setRecordingEnd(pLevel.getGameTime());
-            }
-            LOGGER.info("Recording data changed: Recording: {}, XP: {}, StartTime: {}, EndTime: {}", currentData.getRecording(), currentData.getXP(), currentData.getRecordingStart(), currentData.getRecordingEnd());
-            setRecordingData(itemStack, currentData);
+        if (!currentData.recording()) {
+            // Start recording - clear previous data and start fresh
+            long currentTime = pLevel.getGameTime();
+            itemStack.update(
+                    XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(),
+                    currentData,
+                    data -> new KillRecorderData(true, 0, currentTime, 0L)
+            );
+            player.displayClientMessage(Component.literal("Kill Recording: Enabled (Data Cleared)"), true);
         } else {
-            // This should only happen if it's the first time it gets turned on
-            LOGGER.info("Couldn't get recording data!");
-            setRecordingData(itemStack, new KillRecorderData(true, 0, pLevel.getGameTime(), 0));
-            LOGGER.info("New recording data: Recording: {}, XP: {}, StartTime: {}, EndTime: {}", getRecordingData(itemStack).getRecording()
-                    , getRecordingData(itemStack).getXP(), getRecordingData(itemStack).getRecordingStart(), getRecordingData(itemStack).getRecordingEnd());
+            // Stop recording
+            long currentTime = pLevel.getGameTime();
+            itemStack.update(
+                    XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(),
+                    currentData,
+                    data -> new KillRecorderData(false, data.xp(), data.recordingStart(), currentTime)
+            );
+            player.displayClientMessage(Component.literal("Kill Recording: Disabled"), true);
         }
-
-
-    }
-
-    public static KillRecorderData getRecordingData(ItemStack stack) {
-        return stack.get(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT);
-    }
-
-    public static void setRecordingData(ItemStack stack, KillRecorderData data) {
-        stack.set(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT, data);
     }
 
     @Override
     public void appendHoverText(ItemStack itemStack, Item.TooltipContext ttc, List<Component> component, TooltipFlag ttf) {
         super.appendHoverText(itemStack, ttc, component, ttf);
-        KillRecorderData krData = getRecordingData(itemStack);
+        KillRecorderData krData = itemStack.getOrDefault(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(), KillRecorderData.createEmpty());
 
         if (krData != null) {
-            if (krData.getRecordingEnd() == 0) {
+            if (krData.recordingEnd() == 0) {
                 component.add(Component.translatable("RECORDING").withStyle(ChatFormatting.RED));
             }
 
-            component.add(Component.translatable((krData.getRecording() ? "Current " : "Stored ") + "XP: " + krData.getXP()).withStyle(ChatFormatting.BLUE));
+            component.add(Component.translatable((krData.recording() ? "Current " : "Stored ") + "XP: " + krData.xp()).withStyle(ChatFormatting.BLUE));
 
             // Get current time somehow?
-            if (krData.getRecordingEnd() > 0) {
-                long timeTaken = krData.getRecordingEnd() - krData.getRecordingStart();
+            if (krData.recordingEnd() > 0) {
+                long timeTaken = krData.recordingEnd() - krData.recordingStart();
                 component.add(Component.translatable("Ticks Elapsed: " + timeTaken).withStyle(ChatFormatting.BLUE));
 
-                if (krData.getXP() > 0) {
-                    int costPerTick = (int) HelperFunctions.getTickCost(krData.getXP(), (int)timeTaken);
+                if (krData.xp() > 0) {
+                    int costPerTick = (int) HelperFunctions.getTickCost(krData.xp(), (int)timeTaken);
                     component.add(Component.translatable("Cost Per Tick: " + costPerTick).withStyle(ChatFormatting.BLUE));
                 }
             }
