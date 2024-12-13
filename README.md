@@ -1,27 +1,15 @@
+Overview
 
-Installation information
-=======
+XP Synthesiser is a mod that lets you synthesise XP from power. The main goal of this mod is to provide those on multiplayer and singleplayer with a simple, lag-less alternative to mobfarms that provides solely experience. It also has added utility of being able to store experience, but the mod itself does not provide a way to generate power.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions at [github](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
 
-> **Note**: For Eclipse, use tasks in `Launch Group` instead of ones founds in `Java Application`. A preparation task must run before launching the game. NeoGradle uses launch groups to do these subsequently.
+How to use
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+The mod contains a block (the XP Synthesiser) and an item (the Kill Recorder).
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+After crafting the Kill Recorder, you can toggle (shift + right click) it to let it start recording any mobs you kill. It will tally the gained experience from the kills, and then you can toggle it again to store that recording. Any future recordings on the same Kill Recorder will overwrite any previous ones. It will only register XP gain from kills, and no other sources.
 
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+A Kill Recorder with a saved recording can be placed inside the XP Synthesiser. The Synthesiser, with a valid recording, will start to generate XP. It will generate the amount of XP that you stored in the recording in the amount of time it took you to record that amount of XP gain. However, a power cost is applied per experience point generated, scaled harshly depending on how long it took you to record (much shorter recordings have a much higher per-tick and total power cost). XP generation is paused while there is not sufficient power.
+
+Any XP generated can be extracted with the buttons in the XP Synthesiser's UI. XP can also be stored in the block that way - but be careful! Breaking the block will lose any retained XP.
