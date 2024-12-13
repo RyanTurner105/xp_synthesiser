@@ -1,8 +1,6 @@
 package com.mcdart.xp_synthesiser.util;
 
 import com.mcdart.xp_synthesiser.Config;
-import net.minecraft.server.commands.ExperienceCommand;
-import net.minecraft.world.entity.ExperienceOrb;
 
 public class HelperFunctions {
 

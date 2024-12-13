@@ -5,27 +5,21 @@ import com.mcdart.xp_synthesiser.XPSynthesiser;
 import com.mcdart.xp_synthesiser.items.KillRecorderData;
 import com.mcdart.xp_synthesiser.items.KillRecorderItem;
 import com.mcdart.xp_synthesiser.util.HelperFunctions;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.capabilities.BlockCapability;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.EnergyStorage;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
+
+import java.util.Objects;
 
 import static com.mcdart.xp_synthesiser.XPSynthesiser.*;
 
@@ -40,13 +34,22 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
         @Override
         protected void onContentsChanged(int slot) {
             setChanged();
-            if(!level.isClientSide()) {
+            if(level != null && !level.isClientSide()) {
                 level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
             }
         }
+
+        @Override
+        public @NotNull ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+
+            if (stack.getItem() instanceof KillRecorderItem) {
+                return super.insertItem(slot, stack, simulate);
+            }
+
+            return stack;
+        }
     };
 
-    private static int ticks = 0;
     public ItemStack currentItem = ItemStack.EMPTY;
     public int progress = 0;
 
@@ -60,82 +63,45 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
 
     // Read values from the passed CompoundTag here.
     @Override
-    public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
         super.loadAdditional(tag, registries);
-//        // Will default to 0 if absent. See the NBT article for more information.
+
         progress = tag.getInt("progress");
 
-        // Not sure if necessary
-        trackedProgress.set(0, progress);
+        // Load progress and XP
+        trackedProgress.set(0, tag.getInt("progress"));
         trackedProgress.set(1, tag.getInt("savedXP"));
-//
-//        LOGGER.info("Loaded {}", progress);
-//        LOGGER.info("Loaded {}", tag.get("currentItem"));
-//        if (tag.get("currentItem") != null) {
-//            var optionalStack = ItemStack.parse(registries, tag.get("currentItem"));
-//            LOGGER.info("Tried to load {}", optionalStack);
-//            optionalStack.ifPresent(itemStack -> {currentItem = itemStack; loadSavedItem = true;});
-//            // Load handler (somehow)
-//        }
-//        LOGGER.info("Tag {}", tag);
+
         itemHandler.deserializeNBT(registries, tag.getCompound("inventory"));
+        if (itemHandler.getStackInSlot(0).getItem() instanceof KillRecorderItem) {
+            currentItem = itemHandler.getStackInSlot(0);
+        }
         if (tag.contains("energy") && tag.get("energy") != null) {
-            energyStorage.deserializeNBT(registries, tag.get("energy"));
+            energyStorage.deserializeNBT(registries, Objects.requireNonNull(tag.get("energy")));
         }
     }
 
     // Save values into the passed CompoundTag here.
     @Override
-    public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    public void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
         super.saveAdditional(tag, registries);
-        tag.putInt("progress", progress);
+        tag.putInt("progress", trackedProgress.get(0));
         tag.putInt("savedXP", trackedProgress.get(1));
-//        LOGGER.info("Attempting to save {}, {}, {}", currentItem, ItemStack.EMPTY, currentItem.equals(ItemStack.EMPTY));
-//        if (!currentItem.getItem().toString().equals(ItemStack.EMPTY.getItem().toString())) {
-//            tag.put("currentItem", currentItem.save(registries));
-//        }
-//        LOGGER.info("Tried to save {}", tag);
-//        setChanged(); //Necessary??
+
         tag.put("inventory", itemHandler.serializeNBT(registries));
         tag.put("energy", energyStorage.serializeNBT(registries));
     }
 
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     // Runs every tick
     public static <T extends BlockEntity> void tick(Level level, BlockPos blockPos, BlockState blockState, T t) {
         if (!level.isClientSide()) {
-            ticks++;
-            // Make this run every so often
-            if (ticks > 10) {
                 if (t instanceof XPSynthesiserBlockEntity) {
-                    ((XPSynthesiserBlockEntity) t).tickSynthesiser(level, blockPos, (XPSynthesiserBlockEntity) t);
+                    ((XPSynthesiserBlockEntity) t).tickSynthesiser();
                 }
-            }
         }
     }
 
-    public void tickSynthesiser(Level level, BlockPos blockPos, XPSynthesiserBlockEntity XPSynthesiserEntity) {
-        int power = this.trackedEnergy.get(1);
-
-        this.trackedEnergy.set(1, power + 300);
-        //LOGGER.info("Power: {}", power);
-
-        setChanged();
-
-        // If there is an item in the synthesiser, and it's a kill recorder
-//        if (handler != null &&
-//                !handler.getStackInSlot(0).equals(ItemStack.EMPTY) &&
-//                handler.getStackInSlot(0).getItem() instanceof KillRecorderItem) {
-//            // And it's a new item
-//            if (!currentItem.equals(handler.getStackInSlot(0))) {
-//                // Setup that new item
-//                setupNewItem(handler.getStackInSlot(0));
-//            } else {
-//                // Otherwise, progress current item
-//                progressCurrentItem();
-//            }
-//        }
+    public void tickSynthesiser() {
 
         if(this.itemHandler != null && !this.itemHandler.getStackInSlot(0).equals(ItemStack.EMPTY) &&
                 this.itemHandler.getStackInSlot(0).getItem() instanceof KillRecorderItem) {
@@ -147,26 +113,21 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
                 // Otherwise, progress current item
                 progressCurrentItem();
             }
+        } else {
+            resetProgress();
         }
 
-        //   handler.extractItem(0, 1, false);
-        //// handler.insertItem(0, new ItemStack(level.players().getFirst().getMainHandItem().getItem()), false);
-
-        ticks = 0;
     }
 
     public void setupNewItem(ItemStack newItem) {
-        LOGGER.info("Item {} replaced by {}", currentItem, newItem);
         currentItem = newItem;
-        progress = 0;
-        trackedProgress.set(0, progress);
+        resetProgress();
     }
 
     public void progressCurrentItem() {
 
         KillRecorderData killRecorderData = this.itemHandler.getStackInSlot(0).getOrDefault(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(), KillRecorderData.createEmpty());
         if (killRecorderData.recordingEnd() > 0) {
-            //LOGGER.info("Progressing item {} {}, target: {}", killRecorderData, progress, killRecorderData.getRecordingEnd() - killRecorderData.getRecordingStart());
 
             // Check if the cost can be paid
             int duration = (int)(killRecorderData.recordingEnd() - killRecorderData.recordingStart());
@@ -176,37 +137,30 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
             if (cost <= this.trackedEnergy.get(1)) {
                 // Pay cost
                 this.trackedEnergy.set(1, this.trackedEnergy.get(1) - cost);
-               // LOGGER.info("Paid cost: {}, now: {}", cost, this.trackedEnergy.get(1));
 
-                progress = progress + 10;
+                progress++;
                 trackedProgress.set(0, progress);
                 // Check if progress bar has progressed enough
                 if (progress >= duration) {
                     // If it has, generate the XP
                     generateXP(killRecorderData);
-                    progress = 0;
-                    trackedProgress.set(0, progress);
+                    resetProgress();
                 }
-            } else {
-                //LOGGER.info("Not enough power: {}, {}", cost, this.trackedEnergy.get(1));
             }
-        } else {
-            LOGGER.info("Kill Recorder has no data");
         }
     }
 
-    public void generateXP(KillRecorderData data) {
-        LOGGER.info("Generating {} XP", data.xp());
-        trackedProgress.set(1, trackedProgress.get(1) + data.xp());
-        LOGGER.info("Total now {} XP", trackedProgress.get(1));
+    public void resetProgress() {
+        progress = 0;
+        trackedProgress.set(0, progress);
+    }
 
-        // Generate XP in world
-        //DropExperienceBlock
-        //Minecraft.getInstance().setScreen(new SynthesiserScreen(Component.literal("Hello!")));
+    public void generateXP(KillRecorderData data) {
+        trackedProgress.set(1, trackedProgress.get(1) + data.xp());
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.@NotNull Provider provider) {
         CompoundTag tag = new CompoundTag();
         saveAdditional(tag, provider);
         return tag;
@@ -218,44 +172,13 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider lookupProvider) {
+    public void handleUpdateTag(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider lookupProvider) {
         this.loadAdditional(tag, lookupProvider);
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider lookupProvider) {
+    public void onDataPacket(@NotNull Connection net, @NotNull ClientboundBlockEntityDataPacket pkt, HolderLookup.@NotNull Provider lookupProvider) {
         super.onDataPacket(net, pkt, lookupProvider);
-        //loadAdditional(pkt.getTag(), lookupProvider);
-    }
-
-    @Nullable
-    public <T> T onRegisterCapability(BlockCapability<T, Direction> capability, @Nullable Direction side) {
-        if (side == null) {
-            return null;
-        }
-
-//        if (capability == Capabilities.EnergyStorage.BLOCK && hasType(EnergyPipeType.INSTANCE)) {
-//            if (side != null) {
-//                if (energyStorages[side.get3DDataValue()] == null) {
-//                    energyStorages[side.get3DDataValue()] = new PipeEnergyStorage(this, side);
-//                }
-//                return (T) energyStorages[side.get3DDataValue()];
-//            }
-//        } else
-        if (capability == Capabilities.ItemHandler.BLOCK) {
-            return (T) SynthesiserItemHandler.INSTANCE;
-        }
-        return null;
-    }
-
-    public ItemStack getItem(int pSlot) {
-        setChanged();
-        return itemHandler.getStackInSlot(pSlot);
-    }
-
-    public void setItem(int pSlot, ItemStack pStack) {
-        setChanged();
-        itemHandler.insertItem(pSlot, pStack.copyWithCount(1), false);
     }
 
     public class TrackedEnergy implements ContainerData {
@@ -273,7 +196,6 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
                 // Remove
                 energyStorage.extractEnergy(energyStorage.getEnergyStored() - val, false);
             }
-            //LOGGER.info("Set {} energy for total of {}", val, energyStorage.getEnergyStored());
         }
 
         @Override
@@ -282,7 +204,7 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
         }
     }
 
-    public class TrackedProgress implements ContainerData {
+    public static class TrackedProgress implements ContainerData {
         int progress = 0; // ID 0
         int savedXP = 0; // ID 1
 
@@ -301,7 +223,7 @@ public class XPSynthesiserBlockEntity extends BlockEntity {
             if (idx == 0) {
                 progress = val;
             } else if (idx == 1) {
-                savedXP = val; // may need to do the trickyness here for large ints
+                savedXP = val;
             }
         }
 

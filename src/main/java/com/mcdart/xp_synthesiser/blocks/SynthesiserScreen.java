@@ -4,7 +4,6 @@ import com.mcdart.xp_synthesiser.XPSynthesiser;
 import com.mcdart.xp_synthesiser.items.KillRecorderData;
 import com.mcdart.xp_synthesiser.items.KillRecorderItem;
 import com.mcdart.xp_synthesiser.util.HelperFunctions;
-import com.mojang.logging.LogUtils;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.WidgetSprites;
@@ -15,15 +14,13 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import org.slf4j.Logger;
-
-import java.util.Arrays;
-
+import org.jetbrains.annotations.NotNull;
+import java.util.List;
 import static java.lang.Math.ceil;
 import static java.lang.Math.floor;
 
 public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> {
+    // Positioning
     private static final int MAIN_SCREEN_HEIGHT = 166;
     private static final int MAIN_SCREEN_WIDTH = 176;
     private static final int LABEL_YPOS = 5;
@@ -43,8 +40,17 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
     private static final int PROGRESS_BAR_TEXTURE_X_OFFSET = 193;
     private static final int PROGRESS_BAR_TEXTURE_Y_OFFSET = 2;
 
-
-    private static final Logger LOGGER = LogUtils.getLogger();
+    // Buttons
+    public static final int PLUS_ONE_BUTTON_ID = 1;
+    public static final int MINUS_ONE_BUTTON_ID = 2;
+    public static final int PLUS_TEN_BUTTON_ID = 3;
+    public static final int MINUS_TEN_BUTTON_ID = 4;
+    private static final int BUTTON_ONE_X_OFFSET = 149;
+    private static final int BUTTON_TEN_X_OFFSET = 146;
+    private static final int BUTTON_ONE_HEIGHT = 13;
+    private static final int BUTTON_ONE_WIDTH = 17;
+    private static final int BUTTON_TEN_HEIGHT = 13;
+    private static final int BUTTON_TEN_WIDTH = 23;
 
     private static final ResourceLocation background =
             ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "textures/gui/xp_synthesiser.png");
@@ -62,57 +68,48 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
     protected void init() {
         super.init();
 
-        // Add widgets and precomputed values
-        //this.addRenderableWidget(new EditBox());
-//        this.addRenderableWidget(new ImageButton(leftPos + 126, topPos + 25, 5, 5,
-//                new WidgetSprites(
-//                        ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/plus_button"),
-//                        ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/plus_button")
-//                ),
-//                (element)->{
-//                    LOGGER.info("pressed {}", element);
-//
-//                }
-//        ));
-    }
-
-
-    @Override
-    public void containerTick() {
-        super.containerTick();
-
-        // Execute some logic every frame
-        //LOGGER.info("Screen is ticking");
+        if (minecraft != null && minecraft.gameMode != null) {
+            this.addRenderableWidget(new ImageButton(leftPos + BUTTON_ONE_X_OFFSET, topPos + 25, BUTTON_ONE_WIDTH, BUTTON_ONE_HEIGHT,
+                    new WidgetSprites(
+                            ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/plus_button_one"),
+                            ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/plus_button_one")
+                    ),
+                    (element)->minecraft.gameMode.handleInventoryButtonClick(menu.containerId, PLUS_ONE_BUTTON_ID)
+            ));
+            this.addRenderableWidget(new ImageButton(leftPos + BUTTON_ONE_X_OFFSET, topPos + XP_LABEL_YPOS + 11, BUTTON_ONE_WIDTH, BUTTON_ONE_HEIGHT,
+                    new WidgetSprites(
+                            ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/minus_button_one"),
+                            ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/minus_button_one")
+                    ),
+                    (element)->minecraft.gameMode.handleInventoryButtonClick(menu.containerId, MINUS_ONE_BUTTON_ID)
+            ));
+            this.addRenderableWidget(new ImageButton(leftPos + BUTTON_TEN_X_OFFSET, topPos + 10, BUTTON_TEN_WIDTH, BUTTON_TEN_HEIGHT,
+                    new WidgetSprites(
+                            ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/plus_button_ten"),
+                            ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/plus_button_ten")
+                    ),
+                    (element)->minecraft.gameMode.handleInventoryButtonClick(menu.containerId, PLUS_TEN_BUTTON_ID)
+            ));
+            this.addRenderableWidget(new ImageButton(leftPos + BUTTON_TEN_X_OFFSET, topPos + XP_LABEL_YPOS + 26, BUTTON_TEN_WIDTH, BUTTON_TEN_HEIGHT,
+                    new WidgetSprites(
+                            ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/minus_button_ten"),
+                            ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/minus_button_ten")
+                    ),
+                    (element)->minecraft.gameMode.handleInventoryButtonClick(menu.containerId, MINUS_TEN_BUTTON_ID)
+            ));
+        }
     }
 
     // mouseX and mouseY indicate the scaled coordinates of where the cursor is in on the screen
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 
         // Background is typically rendered first
         this.renderBackground(graphics, mouseX, mouseY, partialTick);
 
-        // Render text here?
-
         // Then the widgets if this is a direct child of the Screen
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
-        addRenderableWidget(new ImageButton(leftPos + 158, topPos + 26, 5, 5,
-                new WidgetSprites(
-                        ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/plus_button"),
-                        ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/plus_button")
-                ),
-                (element)->minecraft.gameMode.handleInventoryButtonClick(menu.containerId, 1)
-                        //addLevelToSynthesiser()
-        )).renderWidget(graphics, mouseX, mouseY, partialTick);
-        addRenderableWidget(new ImageButton(leftPos + 158, topPos + 58, 5, 5,
-                new WidgetSprites(
-                        ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/minus_button"),
-                        ResourceLocation.fromNamespaceAndPath(XPSynthesiser.MODID, "button/minus_button")
-                ),
-                (element)->minecraft.gameMode.handleInventoryButtonClick(menu.containerId, 2)
-                        //removeLevelFromSynthesiser()
-        )).renderWidget(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -120,7 +117,6 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
         // Render things here before widgets (background textures)
         graphics.blit(background, leftPos, topPos, 0, 0, MAIN_SCREEN_WIDTH, MAIN_SCREEN_HEIGHT);
 
-//        LOGGER.info("{}, {}", menu.getSynthesiser().trackedEnergy, menu.getSynthesiser().trackedEnergy.get(1));
         XPSynthesiserBlockEntity synthesiser = menu.getSynthesiser();
 
         // Energy Bar
@@ -128,7 +124,7 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
             double powerPercentage = ((double) synthesiser.trackedEnergy.get(1)) / synthesiser.energyStorage.getMaxEnergyStored();
             graphics.blit(background,
                     leftPos + POWER_BAR_X_OFFSET,
-                    topPos + POWER_BAR_Y_OFFSET + (int) ceil(POWER_BAR_HEIGHT - POWER_BAR_HEIGHT * powerPercentage),
+                    topPos + POWER_BAR_Y_OFFSET + (int) floor(POWER_BAR_HEIGHT - POWER_BAR_HEIGHT * powerPercentage),
                     POWER_BAR_TEXTURE_X_OFFSET,
                     POWER_BAR_TEXTURE_Y_OFFSET,
                     POWER_BAR_WIDTH,
@@ -137,8 +133,7 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
 
         // Progress "Bar"
         KillRecorderData killRecorderData = synthesiser.itemHandler.getStackInSlot(0).getOrDefault(XPSynthesiser.KILL_RECORDER_DATA_COMPONENT.get(), KillRecorderData.createEmpty());
-        //LOGGER.info("Progress {}, Target: {}, Percentage Complete: {}", progress, killRecorderData.getRecordingEnd() - killRecorderData.getRecordingStart(), completionPercentage);
-        if (synthesiser.progress > 0 && killRecorderData.recordingEnd() > 0) {
+        if (synthesiser.trackedProgress.get(0) > 0 && killRecorderData.recordingEnd() > 0) {
             int progress = synthesiser.trackedProgress.get(0);
             double completionPercentage = ((double) progress) / (killRecorderData.recordingEnd() - killRecorderData.recordingStart());
             graphics.blit(background,
@@ -150,12 +145,29 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
                     (int) ceil(PROGRESS_BAR_HEIGHT * completionPercentage));
         }
 
-
         // Render things after widgets (tooltips)
-        //this.renderWithTooltip(graphics, mouseX, mouseY, partialTick); // @mcp: renderTooltip = renderHoveredToolTip
-        if (mouseX > leftPos + POWER_BAR_X_OFFSET && mouseX < leftPos + POWER_BAR_X_OFFSET + POWER_BAR_WIDTH && mouseY > topPos + POWER_BAR_Y_OFFSET && mouseY < topPos + POWER_BAR_Y_OFFSET + POWER_BAR_HEIGHT)
-            graphics.renderTooltip(font, Language.getInstance().getVisualOrder(Arrays.asList(
-                    Component.literal(String.valueOf(menu.getSynthesiser().trackedEnergy.get(1)))
+        // Power tooltip
+        int energyToDisplay = synthesiser.trackedEnergy.get(1) > synthesiser.energyStorage.getMaxEnergyStored() - 2 ?
+                synthesiser.energyStorage.getMaxEnergyStored() : synthesiser.trackedEnergy.get(1);
+        if (mouseX > leftPos + POWER_BAR_X_OFFSET && mouseX < leftPos + POWER_BAR_X_OFFSET + POWER_BAR_WIDTH &&
+                mouseY > topPos + POWER_BAR_Y_OFFSET && mouseY < topPos + POWER_BAR_Y_OFFSET + POWER_BAR_HEIGHT)
+            graphics.renderTooltip(font, Language.getInstance().getVisualOrder(List.of(
+                    Component.literal((energyToDisplay > 1000 ? energyToDisplay / 1000 + " k" : energyToDisplay) + "FE/1000 kFE")
+            )), mouseX, mouseY);
+
+        // Needs kill recorder tooltip
+        if (!(synthesiser.itemHandler.getStackInSlot(0).getItem() instanceof KillRecorderItem) &&
+                mouseX > leftPos + SynthesiserMenu.RECORDER_SLOT_XPOS && mouseX < leftPos + SynthesiserMenu.RECORDER_SLOT_XPOS + SynthesiserMenu.SLOT_X_SPACING &&
+                mouseY > topPos + SynthesiserMenu.RECORDER_SLOT_YPOS && mouseY < topPos + SynthesiserMenu.RECORDER_SLOT_YPOS + SynthesiserMenu.SLOT_Y_SPACING)
+            graphics.renderTooltip(font, Language.getInstance().getVisualOrder(List.of(
+                    Component.literal("Kill Recorder necessary to run")
+            )), mouseX, mouseY);
+
+        // Experience tooltip
+        if (mouseX > leftPos + XP_LABEL_XPOS - 15 && mouseX < leftPos + XP_LABEL_XPOS + 15 &&
+                mouseY > topPos + XP_LABEL_YPOS - 2 && mouseY < topPos + XP_LABEL_YPOS + 8)
+            graphics.renderTooltip(font, Language.getInstance().getVisualOrder(List.of(
+                    Component.literal("XP Levels stored")
             )), mouseX, mouseY);
     }
 
@@ -173,6 +185,8 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
                     HelperFunctions.getLevelFromXP(synthesiser.trackedProgress.get(1)), 2
                 )
         ));
+
+        // Draw XP
         graphics.drawString(font, xpAmount,
                 XP_LABEL_XPOS - font.width(xpAmount) / 2,
                 XP_LABEL_YPOS, 0x039904, false);
@@ -192,7 +206,7 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
 
                 // Not enough power
             } else if (HelperFunctions.getTickCost(killRecorderData.xp(), (int) (killRecorderData.recordingEnd() - killRecorderData.recordingStart()))
-                    > synthesiser.trackedEnergy.get(1) * 2) {
+                    > synthesiser.trackedEnergy.get(1)) {
                 MutableComponent notEnoughPower = Component.literal("NOT ENOUGH POWER");
                 graphics.drawString(font, notEnoughPower,
                         (this.imageWidth - font.width(notEnoughPower)) / 2 + 1,
@@ -200,70 +214,14 @@ public class SynthesiserScreen extends AbstractContainerScreen<SynthesiserMenu> 
 
                 // Valid power
             } else {
-                MutableComponent progressAmount = Component.literal(String.valueOf(
-                        Math.min(
-                                (int) ceil((((double) synthesiser.trackedProgress.get(0)) /
-                                        (killRecorderData.recordingEnd() - killRecorderData.recordingStart())) * 100 + 2)
-                                , 100)
-                ) + "%");
+                MutableComponent progressAmount = Component.literal(Math.min(
+                        (int) ceil((((double) synthesiser.trackedProgress.get(0)) /
+                                (killRecorderData.recordingEnd() - killRecorderData.recordingStart())) * 100 + 2)
+                        , 100) + "%");
                 graphics.drawString(font, progressAmount,
                         (this.imageWidth - font.width(progressAmount)) / 2 + 1,
                         PROGRESS_LABEL_YPOS, 0xFF404040, false);
             }
         }
-    }
-
-    public void addLevelToSynthesiser() {
-        XPSynthesiserBlockEntity synthesiser = menu.getSynthesiser();
-
-        // Check if player has a level to give
-        if (this.minecraft != null && this.minecraft.player != null && this.minecraft.player.totalExperience > 0) {
-            // Deduct nearest level from player
-            double playerXpLevel = HelperFunctions.getLevelFromXP(this.minecraft.player.totalExperience);
-            int flatLevelXP = HelperFunctions.getXPfromLevel(Math.floor(playerXpLevel));
-            if (flatLevelXP == this.minecraft.player.totalExperience) {
-                // If you have a level exactly
-                flatLevelXP = HelperFunctions.getXPfromLevel(Math.floor(playerXpLevel - 1));
-            }
-            int amountToGive = this.minecraft.player.totalExperience - flatLevelXP;
-            //this.minecraft.player.totalExperience = this.minecraft.player.totalExperience - amountToGive;
-            int newAmount = this.minecraft.player.totalExperience - amountToGive;
-            this.minecraft.player.setExperienceValues( newAmount -
-                    HelperFunctions.getXPfromLevel(Math.floor(HelperFunctions.getLevelFromXP(newAmount))),
-                    newAmount,
-                    (int)  Math.floor(HelperFunctions.getLevelFromXP(newAmount)));
-
-            // Add equivalent experience to block entity
-            synthesiser.trackedProgress.set(1, synthesiser.trackedProgress.get(1) + amountToGive);
-        }
-
-    }
-
-    public void removeLevelFromSynthesiser() {
-        XPSynthesiserBlockEntity synthesiser = menu.getSynthesiser();
-
-        // Check if Synthesiser has a level to give
-
-        if (synthesiser.trackedProgress.get(1) != 0) {
-            // Deduct nearest level from block entity
-            double synthesiserXPLevel = HelperFunctions.getLevelFromXP(synthesiser.trackedProgress.get(1));
-            int flatLevelXP = HelperFunctions.getXPfromLevel(Math.floor(synthesiserXPLevel));
-            if (flatLevelXP == synthesiser.trackedProgress.get(1)) {
-                // If you have a level exactly
-                flatLevelXP = HelperFunctions.getXPfromLevel(Math.floor(synthesiserXPLevel - 1));
-            }
-            int amountToGive = synthesiser.trackedProgress.get(1) - flatLevelXP;
-            synthesiser.trackedProgress.set(1, synthesiser.trackedProgress.get(1) - amountToGive);
-
-            // Add equivalent experience to player
-            LOGGER.info("Player: {}, amount: {}", this.minecraft.player, amountToGive);
-            if (this.minecraft != null && this.minecraft.player != null) {
-                this.minecraft.player.giveExperiencePoints(amountToGive);
-
-            }
-
-        }
-
-
     }
 }

@@ -1,40 +1,33 @@
 package com.mcdart.xp_synthesiser.blocks;
 
+import com.mcdart.xp_synthesiser.items.KillRecorderItem;
 import com.mcdart.xp_synthesiser.util.HelperFunctions;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.NonNullList;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ContainerData;
-import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
-import org.slf4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import static com.mcdart.xp_synthesiser.XPSynthesiser.*;
 
 public class SynthesiserMenu extends AbstractContainerMenu {
-    private static final int HOTBAR_XPOS = 8;
-    private static final int HOTBAR_YPOS = 142;
-    private static final int PLAYER_INVENTORY_XPOS = 8;
-    private static final int PLAYER_INVENTORY_YPOS = 84;
-    private static final int RECORDER_SLOT_XPOS = 80;
-    private static final int RECORDER_SLOT_YPOS = 38;
-    private static final int SLOT_X_SPACING = 18;
-    private static final int SLOT_Y_SPACING = 18;
+    public static final int HOTBAR_XPOS = 8;
+    public static final int HOTBAR_YPOS = 142;
+    public static final int PLAYER_INVENTORY_XPOS = 8;
+    public static final int PLAYER_INVENTORY_YPOS = 84;
+    public static final int RECORDER_SLOT_XPOS = 80;
+    public static final int RECORDER_SLOT_YPOS = 38;
+    public static final int SLOT_X_SPACING = 18;
+    public static final int SLOT_Y_SPACING = 18;
+    public static final int INVENTORY_SLOTS = 36;
 
     private final XPSynthesiserBlockEntity synthesiser;
-    public final int power;
-
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     public SynthesiserMenu(int windowId, Inventory invPlayer, FriendlyByteBuf extraData) {
         this(windowId, invPlayer, extraData.readBlockPos());
@@ -46,14 +39,12 @@ public class SynthesiserMenu extends AbstractContainerMenu {
         this.synthesiser = invPlayer.player.level().getBlockEntity(pos, XP_SYNTHESISER_BLOCK_ENTITY.get())
                 .orElseThrow(() -> new IllegalStateException("synthesiser missing at " + pos));
 
-        power = synthesiser.getData(POWER);
-
-        // Player's Hotbar
+        // Player's Hotbar slots
         for (int x = 0; x < 9; x++) {
             addSlot(new Slot(invPlayer, x, HOTBAR_XPOS + SLOT_X_SPACING * x, HOTBAR_YPOS));
         }
 
-        // Player's Main Inventory
+        // Player's Main Inventory slots
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 9; x++) {
                 int slotNumber = 9 + y * 9 + x;
@@ -70,119 +61,90 @@ public class SynthesiserMenu extends AbstractContainerMenu {
         addDataSlots(synthesiser.trackedEnergy);
         // Add slot for current progress and saved XP
         addDataSlots(synthesiser.trackedProgress);
-//
-//        // item router buffer
-//        addSlot(new SlotItemHandler(router.getBuffer(), BUFFER_SLOT, BUFFER_XPOS, BUFFER_YPOS));
-//
-//        // item router modules
-//        for (int slot = 0; slot < router.getModuleSlotCount(); slot++) {
-//            addSlot(new InstalledModuleSlot(router.getModules(), slot, MODULE_XPOS + slot * SLOT_X_SPACING, MODULE_YPOS));
-//        }
-//        // item router upgrades
-//        for (int slot = 0; slot < router.getUpgradeSlotCount(); slot++) {
-//            addSlot(new SlotItemHandler(router.getUpgrades(), slot, UPGRADE_XPOS + slot * SLOT_X_SPACING, UPGRADE_YPOS));
-//        }
-//
-//        addDataSlots(data);
-//
-//        final var event = new RegisterRouterContainerData(router);
-//        NeoForge.EVENT_BUS.post(event);
-//        event.getData().entrySet()
-//                .stream().sorted(Map.Entry.comparingByKey())
-//                .forEach(entry -> addDataSlot(entry.getValue()));
     }
 
     @Override
-    public boolean stillValid(Player player) {
-        return true;
-        //return !router.isRemoved() && Vec3.atCenterOf(router.getBlockPos()).distanceToSqr(player.position()) <= 64;
+    public boolean stillValid(@NotNull Player player) {
+        return !synthesiser.isRemoved() && Vec3.atCenterOf(synthesiser.getBlockPos()).distanceToSqr(player.position()) <= 64;
     }
 
     @Override
-    public ItemStack quickMoveStack(Player player, int sourceSlotIndex) {
+    public @NotNull ItemStack quickMoveStack(@NotNull Player player, int sourceSlotIndex) {
         Slot sourceSlot = slots.get(sourceSlotIndex);
-        if (sourceSlot == null || !sourceSlot.hasItem()) {
+        if (!sourceSlot.hasItem()) {
             return ItemStack.EMPTY;
         }
         ItemStack sourceStack = sourceSlot.getItem();
-        ItemStack copyOfSourceStack = sourceStack.copy();
 
-//        // Check if the slot clicked is one of the vanilla container slots
-//        if (sourceSlotIndex < TE_FIRST_SLOT) {
-//            // This is a vanilla container slot so merge the stack into the appropriate part of the router's inventory
-//            if (sourceStack.getItem() instanceof ModuleItem) {
-//                // shift-clicked a module: see if there's a free module slot
-//                if (!moveItemStackTo(sourceStack, TE_FIRST_SLOT + MODULE_SLOT_START, TE_FIRST_SLOT + MODULE_SLOT_END + 1, false)) {
-//                    return ItemStack.EMPTY;
-//                }
-//            } else if (sourceStack.getItem() instanceof UpgradeItem) {
-//                // shift-clicked an upgrade: see if there's a free upgrade slot
-//                if (!moveItemStackTo(sourceStack, TE_FIRST_SLOT + UPGRADE_SLOT_START, TE_FIRST_SLOT + UPGRADE_SLOT_END + 1, false)) {
-//                    return ItemStack.EMPTY;
-//                }
-//            } else {
-//                // try to merge item into the router's buffer slot
-//                if (!moveItemStackTo(sourceStack, TE_FIRST_SLOT + BUFFER_SLOT, TE_FIRST_SLOT + BUFFER_SLOT + 1, false)) {
-//                    return ItemStack.EMPTY;
-//                }
-//            }
-//        } else if (sourceSlotIndex < TE_FIRST_SLOT + TE_LAST_SLOT) {
-//            // This is a router slot, so merge the stack into the players inventory
-//            if (!moveItemStackTo(sourceStack, 0, TE_FIRST_SLOT - 1, false)) {
-//                return ItemStack.EMPTY;
-//            }
-//        } else {
-//            System.err.print("Invalid moduleSlotIndex: " + sourceSlotIndex);
-//            return ItemStack.EMPTY;
-//        }
-//
-//        // If stack size == 0 (the entire stack was moved) set slot contents to null
-//        if (sourceStack.isEmpty()) {
-//            sourceSlot.set(ItemStack.EMPTY);
-//        } else {
-//            sourceSlot.setChanged();
-//        }
-//
-//        sourceSlot.onTake(player, sourceStack);
-        return copyOfSourceStack;
+        // Check if the slot clicked is one of the vanilla container slots
+        if (sourceSlotIndex < INVENTORY_SLOTS) {
+            // This is a vanilla container slot so merge the stack into the appropriate part of the router's inventory
+            if (sourceStack.getItem() instanceof KillRecorderItem) {
+                // shift-clicked a module: see if there's a free module slot
+                if (!moveItemStackTo(sourceStack, INVENTORY_SLOTS, INVENTORY_SLOTS + 1, false)) {
+                    return ItemStack.EMPTY;
+                }
+            } else {
+                return  ItemStack.EMPTY;
+            }
+        } else if (sourceSlotIndex == INVENTORY_SLOTS) {
+            // This is the Kill Recorder slot, so try and move it back to the player inventory
+            if (!moveItemStackTo(sourceStack, 0, INVENTORY_SLOTS, false)) {
+                return ItemStack.EMPTY;
+            }
+        } else {
+            System.err.print("Unknown slot: " + sourceSlotIndex);
+            return ItemStack.EMPTY;
+        }
+
+        // If stack size == 0 (the entire stack was moved) set slot contents to null
+        if (sourceStack.isEmpty()) {
+            sourceSlot.set(ItemStack.EMPTY);
+        } else {
+            sourceSlot.setChanged();
+        }
+
+        sourceSlot.onTake(player, sourceStack);
+        return sourceStack.copy();
     }
 
     public XPSynthesiserBlockEntity getSynthesiser() {
         return synthesiser;
     }
-//
-//    public static class InstalledModuleSlot extends SlotItemHandler {
-//        // this is just so the slot can be easily identified for item tooltip purposes
-//        InstalledModuleSlot(IItemHandler itemHandler, int index, int xPosition, int yPosition) {
-//            super(itemHandler, index, xPosition, yPosition);
-//        }
-//    }
 
     @Override
     public boolean clickMenuButton(Player pPlayer, int pId) {
-        // Plus Button
-        if (pId == 1) {
-            addLevelToSynthesiser(pPlayer);
-        } else if (pId == 2) {
-            removeLevelFromSynthesiser(pPlayer);
+        // Plus 1 Button
+        if (pId == SynthesiserScreen.PLUS_ONE_BUTTON_ID) {
+            addLevelsToSynthesiser(pPlayer, 1);
+        } else if (pId == SynthesiserScreen.MINUS_ONE_BUTTON_ID) {
+            // Minus 1 Button
+            removeLevelsFromSynthesiser(pPlayer, 1);
+        } else if (pId == SynthesiserScreen.PLUS_TEN_BUTTON_ID) {
+            // Plus 10 Button
+            addLevelsToSynthesiser(pPlayer, 10);
+        } else if (pId == SynthesiserScreen.MINUS_TEN_BUTTON_ID) {
+            // Minus 10 Button
+            removeLevelsFromSynthesiser(pPlayer, 10);
         }
         return false;
     }
 
-    public void addLevelToSynthesiser(Player player) {
+    public void addLevelsToSynthesiser(Player player, int levels) {
         XPSynthesiserBlockEntity synthesiser = getSynthesiser();
 
         // Check if player has a level to give
         if (player instanceof ServerPlayer serverPlayer && (serverPlayer.experienceLevel > 0 || serverPlayer.experienceProgress > 0)) {
 
-            // Deduct nearest level from player
-            int toDeduct = serverPlayer.experienceProgress > 0 ?
-                    // Multiply progress by difference between levels
-                    (int) (serverPlayer.getXpNeededForNextLevel() * serverPlayer.experienceProgress) :
-                    // Get raw experience value of difference between current a lower level
-                    HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel) - HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel - 1);
+            // Get amount to deduct
+            int currentXPProgress = (int) (serverPlayer.getXpNeededForNextLevel() * serverPlayer.experienceProgress); // Any extra progress to a level
+            int toDeduct =
+                    currentXPProgress +
+                    HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel) - // The amount of levels they can give, based on the amount they want to give
+                            HelperFunctions.getXPfromLevel(Math.max(serverPlayer.experienceLevel - levels + (currentXPProgress > 0 ? 1 : 0), 0));
 
-            serverPlayer.setExperienceLevels(serverPlayer.experienceProgress > 0 ? serverPlayer.experienceLevel : serverPlayer.experienceLevel - 1);
+            // Deduct
+            serverPlayer.setExperienceLevels(Math.max(serverPlayer.experienceLevel - levels + (currentXPProgress > 0 ? 1 : 0), 0));
             serverPlayer.setExperiencePoints(0);
 
             // Add equivalent experience to block entity
@@ -191,29 +153,33 @@ public class SynthesiserMenu extends AbstractContainerMenu {
 
     }
 
-    public void removeLevelFromSynthesiser(Player player) {
+    public void removeLevelsFromSynthesiser(Player player, int levels) {
         XPSynthesiserBlockEntity synthesiser = getSynthesiser();
 
-        // Check if Synthesiser has a level to give
+        if (player instanceof ServerPlayer serverPlayer) {
+            int amountToGive = (int) Math.ceil(serverPlayer.getXpNeededForNextLevel() * (1 - serverPlayer.experienceProgress)) + // Amount for the first level
+                    HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel + levels) -
+                    HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel + 1); // Amount for any future levels
 
-        if (synthesiser.trackedProgress.get(1) != 0) {
-            // Deduct nearest level from block entity
-            double synthesiserXPLevel = HelperFunctions.getLevelFromXP(synthesiser.trackedProgress.get(1));
-            int flatLevelXP = HelperFunctions.getXPfromLevel(Math.floor(synthesiserXPLevel));
-            if (flatLevelXP == synthesiser.trackedProgress.get(1)) {
-                // If you have a level exactly
-                flatLevelXP = HelperFunctions.getXPfromLevel(Math.floor(synthesiserXPLevel - 1));
+            // If Synthesiser has enough XP for the player to gain the rest of the levels
+            if (synthesiser.trackedProgress.get(1) > amountToGive) {
+                int newAmount = (int) (HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel) +
+                        serverPlayer.getXpNeededForNextLevel() * serverPlayer.experienceProgress) +
+                        amountToGive;
+
+                // Player will always have a flat level now
+                serverPlayer.setExperienceLevels((int) HelperFunctions.getLevelFromXP(newAmount));
+                serverPlayer.setExperiencePoints(0);
+
+                // Remove xp from synthesiser
+                synthesiser.trackedProgress.set(1, synthesiser.trackedProgress.get(1) - amountToGive);
+
+            } else {
+                // Gain as much of a partial level as you can
+                serverPlayer.giveExperiencePoints(synthesiser.trackedProgress.get(1));
+                synthesiser.trackedProgress.set(1, 0); // Synthesiser now has nothing left
             }
-            int amountToGive = synthesiser.trackedProgress.get(1) - flatLevelXP;
-            synthesiser.trackedProgress.set(1, synthesiser.trackedProgress.get(1) - amountToGive);
-
-            // Add equivalent experience to player
-            if (player != null) {
-                player.giveExperiencePoints(amountToGive);
-            }
-
         }
-
 
     }
 
