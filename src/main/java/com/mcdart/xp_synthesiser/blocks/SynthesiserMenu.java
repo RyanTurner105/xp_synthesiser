@@ -156,27 +156,35 @@ public class SynthesiserMenu extends AbstractContainerMenu {
     public void removeLevelsFromSynthesiser(Player player, int levels) {
         XPSynthesiserBlockEntity synthesiser = getSynthesiser();
 
-        if (player instanceof ServerPlayer serverPlayer) {
+        if (player instanceof ServerPlayer serverPlayer && synthesiser.trackedProgress.get(1) > 0) {
             int amountToGive = (int) Math.ceil(serverPlayer.getXpNeededForNextLevel() * (1 - serverPlayer.experienceProgress)) + // Amount for the first level
                     HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel + levels) -
                     HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel + 1); // Amount for any future levels
 
             // If Synthesiser has enough XP for the player to gain the rest of the levels
-            if (synthesiser.trackedProgress.get(1) > amountToGive) {
+            if (synthesiser.trackedProgress.get(1) >= amountToGive) {
                 int newAmount = (int) (HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel) +
                         serverPlayer.getXpNeededForNextLevel() * serverPlayer.experienceProgress) +
                         amountToGive;
 
                 // Player will always have a flat level now
-                serverPlayer.setExperienceLevels((int) HelperFunctions.getLevelFromXP(newAmount));
                 serverPlayer.setExperiencePoints(0);
+                serverPlayer.setExperienceLevels((int) HelperFunctions.getLevelFromXP(newAmount));
 
                 // Remove xp from synthesiser
                 synthesiser.trackedProgress.set(1, synthesiser.trackedProgress.get(1) - amountToGive);
 
             } else {
                 // Gain as much of a partial level as you can
-                serverPlayer.giveExperiencePoints(synthesiser.trackedProgress.get(1));
+                double newLevels = HelperFunctions.getLevelFromXP((int) (HelperFunctions.getXPfromLevel(serverPlayer.experienceLevel) +
+                                serverPlayer.getXpNeededForNextLevel() * serverPlayer.experienceProgress) + synthesiser.trackedProgress.get(1));
+                int newLevel = (int) Math.floor(newLevels);
+                int newPoints = (int) Math.ceil((HelperFunctions.getXPfromLevel(newLevel + 1) - HelperFunctions.getXPfromLevel(newLevel)) *
+                                (newLevels - newLevel));
+
+                serverPlayer.setExperienceLevels(newLevel);
+                serverPlayer.setExperiencePoints(newPoints);
+
                 synthesiser.trackedProgress.set(1, 0); // Synthesiser now has nothing left
             }
         }
