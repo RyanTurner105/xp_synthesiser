@@ -15,8 +15,12 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class XPSynthesiserBlock extends Block implements EntityBlock {
+    private static final Logger log = LoggerFactory.getLogger(XPSynthesiserBlock.class);
+
     // Constructor deferring to super.
     public XPSynthesiserBlock(BlockBehaviour.Properties properties) {
         super(properties);
@@ -36,9 +40,9 @@ public class XPSynthesiserBlock extends Block implements EntityBlock {
     @Override
     protected @NotNull InteractionResult useWithoutItem(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Player player, @NotNull BlockHitResult hitResult) {
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            var hand = serverPlayer.getUsedItemHand();
             BlockEntity be = level.getBlockEntity(pos);
-            if (hand != InteractionHand.MAIN_HAND || !(be instanceof XPSynthesiserBlockEntity)) return InteractionResult.PASS;
+
+            if (!(be instanceof XPSynthesiserBlockEntity)) return InteractionResult.PASS;
 
             serverPlayer.openMenu(new SimpleMenuProvider(
                     (containerId, playerInventory, nplayer) -> new SynthesiserMenu(containerId, playerInventory, pos),
