@@ -19,7 +19,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "xp_synthesiser:xp_synthesier"
+        "recipe": "xp_synthesiser:xp_synthesiser"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
