@@ -77,6 +77,12 @@ public class KillRecorderItem extends Item {
                 if (krData.xp() > 0) {
                     int costPerTick = (int) HelperFunctions.getTickCost(krData.xp(), (int) timeTaken);
                     component.add(Component.literal("Cost Per Tick: §6" + costPerTick).withStyle(ChatFormatting.BLUE));
+                    if (costPerTick > 1000000) {
+                        component.add(Component.literal("Very high cost detected. " +
+                                "This recording is too powerful to work with the XP Synthesiser. " +
+                                        "Increase duration of recording to lower power level.")
+                                .withStyle(ChatFormatting.RED));
+                    }
                 }
             }
         } else {

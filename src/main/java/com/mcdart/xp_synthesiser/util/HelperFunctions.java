@@ -19,11 +19,13 @@ public class HelperFunctions {
     // - totalXP: 1000, totalTicks: 100 (some exploit) - CPT: 1,100,000, TC: 110,000,000
     public static double getTickCost(int totalXp, int totalTicks) {
         int defaultCost = Config.GENERAL.xpPointCost.getAsInt(); // Default is 10000
+        int scalingCost = Config.GENERAL.xpScalingCost.getAsInt(); // Default is 100000
+        int scalingFactor = Config.GENERAL.xpScalingFactor.getAsInt(); // Default is 3
 
         double baseCost = (double)totalXp * defaultCost / (double)totalTicks;
-        double scalingCost = (double)(totalXp^3) * defaultCost / ((double)(totalTicks^2) * ((double) defaultCost / 10));
+        double extraScalingCost = (Math.pow(totalXp, scalingFactor) * scalingCost) / (((Math.pow(totalTicks,scalingFactor)) * ((double) defaultCost / 10)));
 
-        return baseCost + scalingCost;
+        return baseCost + extraScalingCost;
     }
 
     // Returns the current level and progress to the next level as a double.
