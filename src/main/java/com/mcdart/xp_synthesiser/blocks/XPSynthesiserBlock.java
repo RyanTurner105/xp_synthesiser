@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class XPSynthesiserBlock extends Block implements EntityBlock {
-    private static final Logger log = LoggerFactory.getLogger(XPSynthesiserBlock.class);
 
     // Constructor deferring to super.
     public XPSynthesiserBlock(BlockBehaviour.Properties properties) {
